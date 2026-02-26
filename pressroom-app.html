@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PRESSROOM / サンプル管理</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #171717;
+    --border: #2a2a2a;
+    --accent: #c8a96e;
+    --accent-dim: #8a7249;
+    --text: #e8e4dc;
+    --text-muted: #6b6660;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --radius: 2px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    padding: 20px 20px 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    color: var(--text);
+  }
+  .brand span {
+    color: var(--accent);
+    font-style: italic;
+  }
+  .subtitle {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .sku-status {
+    text-align: right;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .sku-count {
+    color: var(--accent);
+    font-size: 16px;
+    display: block;
+  }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  /* SECTIONS */
+  .section { display: none; padding: 20px; }
+  .section.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-label {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+  .btn-primary:hover { background: #d4b87c; }
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+  }
+  .btn-full { width: 100%; }
+
+  /* SCAN BUTTON */
+  .scan-btn {
+    width: 100%;
+    height: 80px;
+    background: var(--surface);
+    border: 2px dashed var(--accent-dim);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+  .scan-btn:hover { border-color: var(--accent); background: #1e1c18; }
+  .scan-btn .scan-icon { font-size: 28px; }
+
+  /* VIDEO */
+  #scanner-container {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 200;
+    flex-direction: column;
+  }
+  #scanner-container.visible { display: flex; }
+  #video {
+    width: 100%;
+    flex: 1;
+    object-fit: cover;
+  }
+  .scanner-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .scan-frame {
+    width: 260px;
+    height: 160px;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    animation: scanline 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--accent);
+  }
+  @keyframes scanline {
+    0% { top: 0; }
+    50% { top: calc(100% - 2px); }
+    100% { top: 0; }
+  }
+  .scanner-footer {
+    padding: 20px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .scanner-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* MANUAL INPUT */
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .input-field {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--text-muted); }
+
+  label.field-label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+  .field-wrap { margin-bottom: 12px; }
+
+  /* SCANNED LIST */
+  .scanned-list { margin-top: 4px; }
+  .scanned-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .scanned-item:last-child { border-bottom: none; }
+  .item-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 22px;
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item-sku {
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 1px;
+    letter-spacing: 0.1em;
+  }
+  .item-barcode {
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .remove-btn:hover { color: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+
+  /* LOOKUP RESULT */
+  .lookup-result {
+    padding: 10px 12px;
+    background: #1a1a12;
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    display: none;
+  }
+  .lookup-result.visible { display: block; }
+  .lookup-result.error { background: #1a1212; border-color: var(--danger); }
+  .result-label { font-size: 9px; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; }
+  .result-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; margin-top: 2px; }
+  .result-sku { font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  /* CSV UPLOAD */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .upload-zone:hover { border-color: var(--accent-dim); }
+  .upload-zone input { display: none; }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-text { font-size: 11px; color: var(--text-muted); letter-spacing: 0.1em; }
+  .upload-sub { font-size: 9px; color: var(--text-muted); margin-top: 4px; }
+
+  /* GOOGLE SHEETS */
+  .gs-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .dot.connected { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .dot.error { background: var(--danger); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* SUMMARY BAR */
+  .summary-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .summary-count { font-size: 22px; font-family: 'Cormorant Garamond', serif; }
+  .summary-label { font-size: 9px; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-top">
+    <div>
+      <div class="brand">PRESS<span>room</span></div>
+      <div class="subtitle">Sample Management System</div>
+    </div>
+    <div class="sku-status">
+      <span class="sku-count" id="skuCount">—</span>
+      <span>SKUs loaded</span>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('scan')">
+    <span class="tab-icon">⬛</span>SCAN
+  </div>
+  <div class="tab" onclick="switchTab('lend')">
+    <span class="tab-icon">📋</span>LEND
+  </div>
+  <div class="tab" onclick="switchTab('settings')">
+    <span class="tab-icon">⚙</span>SETUP
+  </div>
+</div>
+
+<!-- SCAN TAB -->
+<div class="section active" id="tab-scan">
+
+  <div class="card">
+    <div class="card-label">Barcode Scanner</div>
+    <button class="scan-btn" onclick="startScan()">
+      <span class="scan-icon">▦</span>
+      カメラでスキャン
+    </button>
+    <div class="card-label" style="margin-bottom:6px">手動入力</div>
+    <div class="input-row">
+      <input class="input-field" id="manualInput" placeholder="バーコード番号を入力..." 
+             onkeydown="if(event.key==='Enter')addByBarcode()">
+      <button class="btn btn-primary" onclick="addByBarcode()">ADD</button>
+    </div>
+    <div class="lookup-result" id="lookupResult">
+      <div class="result-label">LOOKUP RESULT</div>
+      <div class="result-name" id="resultName"></div>
+      <div class="result-sku" id="resultSku"></div>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div>
+      <div class="summary-count" id="itemCount">0</div>
+      <div class="summary-label">items scanned</div>
+    </div>
+    <button class="btn btn-danger" onclick="clearList()" style="font-size:10px;padding:6px 10px;">CLEAR ALL</button>
+  </div>
+
+  <div class="scanned-list" id="scannedList">
+    <div class="empty-state">
+      <span class="empty-icon">▦</span>
+      スキャンしたサンプルがここに表示されます
+    </div>
+  </div>
+</div>
+
+<!-- LEND TAB -->
+<div class="section" id="tab-lend">
+
+  <div class="card">
+    <div class="card-label">貸し出し先情報</div>
+
+    <div class="field-wrap">
+      <label class="field-label">会社名</label>
+      <input class="input-field" id="company" placeholder="例：株式会社○○メディア" style="width:100%">
+    </div>
+    <div class="field-wrap">
+      <label class="field-label">担当者名</label>
+      <input class="input-field" id="contact" placeholder="例：山田 花子" style="width:100%">
+    </div>
+    <div class="input-row">
+      <div class="field-wrap" style="flex:1">
+        <label class="field-label">貸し出し日</label>
+        <input class="input-field" id="lendDate" type="date" style="width:100%">
+      </div>
+      <div class="field-wrap" style="flex:1">
+        <label class="field-label">返却予定日</label>
+        <input class="input-field" id="returnDate" type="date" style="width:100%">
+      </div>
+    </div>
+    <div class="field-wrap">
+      <label class="field-label">備考</label>
+      <input class="input-field" id="notes" placeholder="特記事項があれば..." style="width:100%">
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div>
+      <span class="summary-count" id="lendItemCount">0</span>
+      <span class="summary-label"> items</span>
+    </div>
+    <span id="lendCompanyPreview" style="font-size:11px;color:var(--text-muted)">—</span>
+  </div>
+
+  <hr class="divider">
+
+  <button class="btn btn-primary btn-full" onclick="outputPDF()" style="margin-bottom:10px;height:48px;font-size:13px">
+    📄 PDF出力
+  </button>
+  <button class="btn btn-outline btn-full" onclick="saveToSheets()" style="height:48px;font-size:12px">
+    📊 Google Sheetsに保存
+  </button>
+</div>
+
+<!-- SETTINGS TAB -->
+<div class="section" id="tab-settings">
+
+  <div class="card">
+    <div class="card-label">SKUマスタ（CSV/Excel）</div>
+    <div class="upload-zone" onclick="document.getElementById('csvFile').click()">
+      <input type="file" id="csvFile" accept=".csv,.xlsx,.xls" onchange="loadCSV(event)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-text">CSVファイルをアップロード</div>
+      <div class="upload-sub">形式: バーコード, サンプル名, SKU</div>
+    </div>
+    <div id="csvPreview" style="margin-top:12px;font-size:10px;color:var(--text-muted);display:none">
+      ✓ <span id="csvPreviewText"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Google Sheets連携</div>
+    <div class="field-wrap">
+      <label class="field-label">Apps Script Web App URL</label>
+      <input class="input-field" id="sheetsUrl" placeholder="https://script.google.com/macros/s/..." style="width:100%">
+    </div>
+    <div class="gs-status" id="gsStatus">
+      <div class="dot" id="gsDot"></div>
+      <span id="gsStatusText">未設定</span>
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn btn-outline" onclick="saveSettings()">設定を保存</button>
+      <button class="btn btn-outline" onclick="testConnection()" style="margin-left:8px">接続テスト</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">CSV形式のヒント</div>
+    <div style="font-size:10px;color:var(--text-muted);line-height:1.8">
+      1行目はヘッダー行（無視されます）<br>
+      列順: バーコード, サンプル名, SKU<br><br>
+      <code style="color:var(--accent)">4901234567890,フローラルブラウス,BLS-2024-001</code><br>
+      <code style="color:var(--accent)">4901234567891,シルクスカート,SKT-2024-002</code>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Google Apps Scriptのセットアップ</div>
+    <div style="font-size:10px;color:var(--text-muted);line-height:1.8">
+      1. Google Sheetsを新規作成<br>
+      2. 拡張機能 → Apps Script を開く<br>
+      3. 下記のコードを貼り付けてデプロイ<br>
+      4. 発行されたURLをここに入力
+    </div>
+    <details style="margin-top:10px">
+      <summary style="font-size:10px;color:var(--accent);cursor:pointer;letter-spacing:0.1em">APPS SCRIPT コードを見る</summary>
+      <pre style="font-size:9px;color:var(--text-muted);margin-top:8px;white-space:pre-wrap;background:var(--bg);padding:10px;border-radius:2px">function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  
+  // ヘッダー追加（初回のみ）
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['日時','会社名','担当者',
+      '貸出日','返却予定日','SKU','サンプル名',
+      'バーコード','備考']);
+  }
+  
+  data.items.forEach(function(item) {
+    sheet.appendRow([
+      new Date().toLocaleString('ja-JP'),
+      data.company, data.contact,
+      data.lendDate, data.returnDate,
+      item.sku, item.name, item.barcode,
+      data.notes
+    ]);
+  });
+  
+  return ContentService
+    .createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+    </details>
+  </div>
+</div>
+
+<!-- SCANNER MODAL -->
+<div id="scanner-container">
+  <video id="video" playsinline autoplay muted></video>
+  <div class="scanner-overlay">
+    <div class="scan-frame">
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div class="scanner-footer">
+    <div class="scanner-hint">バーコードを枠内に合わせてください</div>
+    <button class="btn btn-outline btn-full" onclick="stopScan()">キャンセル</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======= STATE =======
+let skuMap = {}; // barcode -> {name, sku}
+let scannedItems = [];
+let stream = null;
+let scanInterval = null;
+let settings = {};
+
+// ======= INIT =======
+window.onload = () => {
+  // Load saved settings
+  try {
+    settings = JSON.parse(localStorage.getItem('pressroom_settings') || '{}');
+    if (settings.sheetsUrl) document.getElementById('sheetsUrl').value = settings.sheetsUrl;
+    if (settings.skuData) {
+      skuMap = settings.skuData;
+      updateSkuCount();
+    }
+  } catch(e) {}
+
+  // Default dates
+  const today = new Date();
+  const week = new Date(today); week.setDate(week.getDate() + 7);
+  document.getElementById('lendDate').value = today.toISOString().split('T')[0];
+  document.getElementById('returnDate').value = week.toISOString().split('T')[0];
+  
+  // Load sample data if empty
+  if (Object.keys(skuMap).length === 0) loadSampleData();
+};
+
+function loadSampleData() {
+  skuMap = {
+    '4901234567890': { name: 'フローラルブラウス', sku: 'BLS-2024-001' },
+    '4901234567891': { name: 'シルクスカート', sku: 'SKT-2024-002' },
+    '4901234567892': { name: 'デニムジャケット', sku: 'JKT-2024-003' },
+    '4901234567893': { name: 'レザートートバッグ', sku: 'BAG-2024-004' },
+    '4901234567894': { name: 'ニットセーター', sku: 'KNT-2024-005' },
+  };
+  updateSkuCount();
+  showToast('サンプルデータを読み込みました');
+}
+
+// ======= TABS =======
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  updateLendTab();
+}
+
+// ======= BARCODE LOOKUP =======
+function lookupBarcode(barcode) {
+  barcode = barcode.trim();
+  return skuMap[barcode] || null;
+}
+
+function addByBarcode(barcode) {
+  barcode = barcode || document.getElementById('manualInput').value.trim();
+  if (!barcode) return;
+
+  const item = lookupBarcode(barcode);
+  const resultEl = document.getElementById('lookupResult');
+  
+  if (item) {
+    scannedItems.push({ barcode, name: item.name, sku: item.sku });
+    resultEl.className = 'lookup-result visible';
+    document.getElementById('resultName').textContent = item.name;
+    document.getElementById('resultSku').textContent = item.sku;
+    document.getElementById('manualInput').value = '';
+    renderList();
+    showToast('追加: ' + item.name);
+  } else {
+    resultEl.className = 'lookup-result visible error';
+    document.getElementById('resultName').textContent = '見つかりません';
+    document.getElementById('resultSku').textContent = 'バーコード: ' + barcode;
+    showToast('SKUが見つかりません');
+  }
+  setTimeout(() => resultEl.classList.remove('visible'), 3000);
+}
+
+// ======= LIST =======
+function renderList() {
+  const el = document.getElementById('scannedList');
+  document.getElementById('itemCount').textContent = scannedItems.length;
+  
+  if (scannedItems.length === 0) {
+    el.innerHTML = `<div class="empty-state"><span class="empty-icon">▦</span>スキャンしたサンプルがここに表示されます</div>`;
+    return;
+  }
+  
+  el.innerHTML = scannedItems.map((item, i) => `
+    <div class="scanned-item">
+      <span class="item-num">${String(i+1).padStart(2,'0')}</span>
+      <div class="item-info">
+        <div class="item-name">${item.name}</div>
+        <div class="item-sku">${item.sku}</div>
+        <div class="item-barcode">${item.barcode}</div>
+      </div>
+      <button class="remove-btn" onclick="removeItem(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function removeItem(i) {
+  scannedItems.splice(i, 1);
+  renderList();
+}
+
+function clearList() {
+  if (scannedItems.length === 0) return;
+  if (confirm('リストをクリアしますか？')) {
+    scannedItems = [];
+    renderList();
+  }
+}
+
+// ======= CAMERA SCAN =======
+async function startScan() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    document.getElementById('video').srcObject = stream;
+    document.getElementById('scanner-container').classList.add('visible');
+    startBarcodeDetection();
+  } catch(e) {
+    showToast('カメラにアクセスできません');
+  }
+}
+
+function stopScan() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  document.getElementById('scanner-container').classList.remove('visible');
+}
+
+function startBarcodeDetection() {
+  if (!('BarcodeDetector' in window)) {
+    showToast('このブラウザはBarcodeDetectorに非対応です');
+    stopScan();
+    return;
+  }
+  const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'] });
+  const video = document.getElementById('video');
+  
+  scanInterval = setInterval(async () => {
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    try {
+      const barcodes = await detector.detect(video);
+      if (barcodes.length > 0) {
+        const code = barcodes[0].rawValue;
+        stopScan();
+        addByBarcode(code);
+      }
+    } catch(e) {}
+  }, 300);
+}
+
+// ======= CSV UPLOAD =======
+function loadCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  Papa.parse(file, {
+    complete: (result) => {
+      let count = 0;
+      skuMap = {};
+      result.data.forEach((row, i) => {
+        if (i === 0 || row.length < 3) return; // skip header
+        const [barcode, name, sku] = row;
+        if (barcode && name && sku) {
+          skuMap[barcode.trim()] = { name: name.trim(), sku: sku.trim() };
+          count++;
+        }
+      });
+      settings.skuData = skuMap;
+      localStorage.setItem('pressroom_settings', JSON.stringify(settings));
+      updateSkuCount();
+      document.getElementById('csvPreview').style.display = 'block';
+      document.getElementById('csvPreviewText').textContent = `${count}件のSKUを読み込みました`;
+      showToast(`${count}件のSKUを読み込みました`);
+    },
+    error: () => showToast('CSVの読み込みに失敗しました')
+  });
+}
+
+function updateSkuCount() {
+  document.getElementById('skuCount').textContent = Object.keys(skuMap).length;
+}
+
+// ======= LEND TAB =======
+function updateLendTab() {
+  document.getElementById('lendItemCount').textContent = scannedItems.length;
+  const company = document.getElementById('company').value;
+  document.getElementById('lendCompanyPreview').textContent = company || '—';
+}
+
+// ======= PDF OUTPUT =======
+function outputPDF() {
+  if (scannedItems.length === 0) { showToast('サンプルが選択されていません'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  const company = document.getElementById('company').value || '未入力';
+  const contact = document.getElementById('contact').value || '未入力';
+  const lendDate = document.getElementById('lendDate').value || '—';
+  const returnDate = document.getElementById('returnDate').value || '—';
+  const notes = document.getElementById('notes').value || '';
+  const now = new Date().toLocaleString('ja-JP');
+
+  // Colors
+  const gold = [200, 169, 110];
+  const dark = [14, 14, 14];
+  const gray = [80, 78, 75];
+  const lightGray = [230, 228, 225];
+
+  // Header bar
+  doc.setFillColor(...dark);
+  doc.rect(0, 0, 210, 30, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PRESSROOM', 14, 12);
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gold);
+  doc.text('SAMPLE LENDING RECORD', 14, 18);
+  
+  doc.setTextColor(150, 148, 145);
+  doc.setFontSize(7);
+  doc.text('Generated: ' + now, 14, 24);
+  doc.text('Ref: PR-' + Date.now().toString().slice(-6), 180, 24, { align: 'right' });
+
+  // Info section
+  doc.setFillColor(245, 243, 240);
+  doc.rect(0, 30, 210, 40, 'F');
+
+  const infoLeft = 14, infoTop = 38;
+  const drawInfo = (label, value, x, y) => {
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...gray);
+    doc.text(label, x, y);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...dark);
+    doc.text(value, x, y + 5);
+  };
+
+  drawInfo('COMPANY', company, infoLeft, infoTop);
+  drawInfo('CONTACT', contact, infoLeft, infoTop + 15);
+  drawInfo('LEND DATE', lendDate, 110, infoTop);
+  drawInfo('RETURN DATE', returnDate, 110, infoTop + 15);
+
+  // Divider
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.5);
+  doc.line(14, 72, 196, 72);
+
+  // Table header
+  const tableTop = 78;
+  doc.setFillColor(...dark);
+  doc.rect(14, tableTop, 182, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.text('NO.', 17, tableTop + 5.5);
+  doc.text('SAMPLE NAME', 30, tableTop + 5.5);
+  doc.text('SKU', 130, tableTop + 5.5);
+  doc.text('BARCODE', 168, tableTop + 5.5);
+
+  // Table rows
+  let y = tableTop + 8;
+  scannedItems.forEach((item, i) => {
+    const isEven = i % 2 === 0;
+    doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 247, isEven ? 255 : 244);
+    doc.rect(14, y, 182, 9, 'F');
+
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(i + 1).padStart(2, '0'), 17, y + 6);
+    doc.text(item.name.substring(0, 32), 30, y + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...gold);
+    doc.text(item.sku, 130, y + 6);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...gray);
+    doc.setFontSize(7);
+    doc.text(item.barcode, 168, y + 6);
+
+    // bottom border
+    doc.setDrawColor(...lightGray);
+    doc.setLineWidth(0.2);
+    doc.line(14, y + 9, 196, y + 9);
+    y += 9;
+  });
+
+  // Total row
+  doc.setFillColor(...gold);
+  doc.rect(14, y, 182, 8, 'F');
+  doc.setTextColor(...dark);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTAL', 30, y + 5.5);
+  doc.text(String(scannedItems.length) + ' items', 168, y + 5.5, { align: 'right' });
+  y += 8;
+
+  // Notes
+  if (notes) {
+    y += 10;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...gray);
+    doc.text('NOTES', 14, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...dark);
+    doc.text(notes, 14, y + 5);
+    y += 14;
+  }
+
+  // Signature area
+  const sigY = Math.max(y + 20, 240);
+  doc.setDrawColor(...gray);
+  doc.setLineWidth(0.3);
+  doc.line(14, sigY, 80, sigY);
+  doc.line(120, sigY, 196, sigY);
+  doc.setFontSize(7);
+  doc.setTextColor(...gray);
+  doc.text('貸し出し担当者サイン', 14, sigY + 4);
+  doc.text('受け取り担当者サイン', 120, sigY + 4);
+
+  // Footer
+  doc.setFillColor(...dark);
+  doc.rect(0, 285, 210, 12, 'F');
+  doc.setTextColor(100, 98, 96);
+  doc.setFontSize(6.5);
+  doc.text('PRESSROOM Sample Management System', 14, 292);
+  doc.text('Page 1 of 1', 196, 292, { align: 'right' });
+
+  const filename = `PR_${company.replace(/\s/g,'_')}_${lendDate}.pdf`;
+  doc.save(filename);
+  showToast('PDFを出力しました');
+}
+
+// ======= GOOGLE SHEETS =======
+async function saveToSheets() {
+  const url = document.getElementById('sheetsUrl').value.trim();
+  if (!url) { showToast('Apps Script URLを設定してください'); switchTab('settings'); return; }
+  if (scannedItems.length === 0) { showToast('サンプルが選択されていません'); return; }
+
+  const payload = {
+    company: document.getElementById('company').value,
+    contact: document.getElementById('contact').value,
+    lendDate: document.getElementById('lendDate').value,
+    returnDate: document.getElementById('returnDate').value,
+    notes: document.getElementById('notes').value,
+    items: scannedItems
+  };
+
+  showToast('送信中...');
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showToast('Google Sheetsに保存しました ✓');
+    updateGsStatus(true);
+  } catch(e) {
+    showToast('送信に失敗しました');
+    updateGsStatus(false);
+  }
+}
+
+async function testConnection() {
+  const url = document.getElementById('sheetsUrl').value.trim();
+  if (!url) { showToast('URLを入力してください'); return; }
+  try {
+    await fetch(url, { mode: 'no-cors' });
+    updateGsStatus(true);
+    showToast('接続確認 ✓');
+  } catch(e) {
+    updateGsStatus(false);
+    showToast('接続に失敗しました');
+  }
+}
+
+function updateGsStatus(ok) {
+  const dot = document.getElementById('gsDot');
+  const text = document.getElementById('gsStatusText');
+  dot.className = 'dot ' + (ok ? 'connected' : 'error');
+  text.textContent = ok ? '接続済み' : 'エラー';
+}
+
+function saveSettings() {
+  settings.sheetsUrl = document.getElementById('sheetsUrl').value.trim();
+  localStorage.setItem('pressroom_settings', JSON.stringify(settings));
+  showToast('設定を保存しました');
+}
+
+// ======= TOAST =======
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
