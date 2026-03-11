@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>読む — キュレーションリーダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e8e2d9;
+    --text-primary: #1a1714;
+    --text-secondary: #6b6560;
+    --text-muted: #a09890;
+    --accent: #c0392b;
+    --accent-light: #f9ecea;
+    --admin-bg: #1a1714;
+    --admin-surface: #252220;
+    --admin-border: #3a3530;
+    --admin-text: #e8e2d9;
+    --admin-muted: #6b6560;
+    --font-serif: 'Noto Serif JP', Georgia, serif;
+    --font-sans: 'Noto Sans JP', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+
+  /* ====== ADMIN SCREEN ====== */
+  #admin-screen {
+    display: none;
+    min-height: 100vh;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+  }
+
+  .admin-header {
+    border-bottom: 1px solid var(--admin-border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--admin-bg);
+    z-index: 10;
+  }
+
+  .admin-header-logo {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .admin-header-logo span { color: var(--accent); }
+
+  .admin-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--admin-border);
+    color: var(--admin-muted);
+    padding: 0.4rem 0.85rem;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--admin-text);
+    color: var(--admin-text);
+  }
+
+  .admin-body {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+  }
+
+  /* URL Input Panel */
+  .add-panel {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .add-panel-title {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--admin-muted);
+    margin-bottom: 1rem;
+  }
+
+  .url-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .url-input {
+    flex: 1;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .url-input:focus { border-color: var(--accent); }
+  .url-input::placeholder { color: var(--admin-muted); }
+
+  .add-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+    letter-spacing: 0.04em;
+  }
+
+  .add-btn:hover { opacity: 0.85; }
+  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .fetch-status {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--admin-muted);
+    min-height: 1rem;
+  }
+
+  .fetch-status.error { color: #e74c3c; }
+  .fetch-status.success { color: #2ecc71; }
+
+  /* Article List in Admin */
+  .admin-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .admin-list-title {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--admin-muted);
+  }
+
+  .sort-select {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .admin-article-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+
+  .admin-article-card:hover { border-color: #4a4540; }
+
+  .admin-thumb {
+    width: 72px;
+    height: 56px;
+    border-radius: 3px;
+    object-fit: cover;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    flex-shrink: 0;
+  }
+
+  .admin-thumb-placeholder {
+    width: 72px;
+    height: 56px;
+    border-radius: 3px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-muted);
+    font-size: 1.2rem;
+  }
+
+  .admin-article-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .admin-article-title {
+    font-size: 0.9rem;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    color: var(--admin-text);
+    margin-bottom: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-article-meta {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--admin-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .admin-article-url {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--admin-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .admin-article-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .btn-delete {
+    background: none;
+    border: 1px solid var(--admin-border);
+    color: #e74c3c;
+    width: 28px;
+    height: 28px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .btn-delete:hover {
+    background: rgba(231,76,60,0.1);
+    border-color: #e74c3c;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--admin-muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  /* ====== READER / PUBLIC SCREEN ====== */
+  #reader-screen {
+    display: none;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+
+  .reader-header {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .reader-header-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .reader-logo {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .reader-logo span { color: var(--accent); }
+
+  .reader-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .reader-sort {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.65rem;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .reader-admin-link {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+
+  .reader-admin-link:hover { color: var(--text-secondary); }
+
+  .reader-main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .reader-count {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1.75rem;
+  }
+
+  /* Reader Article Cards */
+  .reader-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+
+  .reader-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    transform: translateY(-1px);
+  }
+
+  .reader-card-inner {
+    display: flex;
+    gap: 0;
+  }
+
+  .reader-card-thumb-wrap {
+    flex-shrink: 0;
+    width: 160px;
+  }
+
+  .reader-card-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .reader-card-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 120px;
+    background: #f0ece6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+  }
+
+  .reader-card-content {
+    flex: 1;
+    padding: 1.25rem 1.5rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .reader-card-top {}
+
+  .reader-card-domain {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.5rem;
+  }
+
+  .reader-card-title {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--text-primary);
+    margin-bottom: 0.6rem;
+    text-decoration: none;
+    display: block;
+  }
+
+  .reader-card-title:hover { color: var(--accent); }
+
+  .reader-card-desc {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .reader-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .reader-card-date {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+
+  .reader-card-link {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: opacity 0.2s;
+  }
+
+  .reader-card-link:hover { opacity: 0.7; }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .reader-card-inner { flex-direction: column; }
+    .reader-card-thumb-wrap { width: 100%; height: 160px; }
+    .reader-card-content { padding: 1rem; }
+    .reader-card-title { font-size: 0.95rem; }
+    .admin-body { padding: 1.25rem 1rem; }
+    .admin-header { padding: 0.85rem 1rem; }
+    .url-row { flex-direction: column; }
+    .admin-article-card { flex-direction: column; gap: 0.75rem; }
+    .admin-thumb, .admin-thumb-placeholder { width: 100%; height: 120px; }
+    .reader-card-thumb-placeholder { min-height: 160px; }
+    .reader-header-inner { padding: 0.85rem 1rem; }
+    .reader-main { padding: 1.25rem 1rem; }
+  }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid transparent;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Tag/Badge */
+  .badge {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    padding: 0.1rem 0.45rem;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+
+
+<!-- ====== ADMIN SCREEN ====== -->
+<div id="admin-screen">
+  <div class="admin-header">
+    <div class="admin-header-logo">読む<span>.</span> <small style="font-size:0.6rem;font-family:var(--font-mono);color:var(--admin-muted);font-weight:normal;letter-spacing:0.06em;text-transform:uppercase;">Admin</small></div>
+    <div class="admin-header-actions">
+      <button class="btn-ghost" onclick="showReader()">閲覧ページ →</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <!-- Add URL -->
+    <div class="add-panel">
+      <div class="add-panel-title">URLを追加</div>
+      <div class="url-row">
+        <input type="url" class="url-input" id="url-input" placeholder="https://example.com/article..." onkeydown="if(event.key==='Enter')fetchAndAdd()">
+        <button class="add-btn" id="add-btn" onclick="fetchAndAdd()">取得 →</button>
+      </div>
+      <div class="fetch-status" id="fetch-status"></div>
+    </div>
+
+    <!-- Article List -->
+    <div class="admin-list-header">
+      <div class="admin-list-title">記事一覧 (<span id="admin-count">0</span>)</div>
+      <select class="sort-select" onchange="renderAdmin(this.value)">
+        <option value="published">投稿日時 (新しい順)</option>
+        <option value="published-asc">投稿日時 (古い順)</option>
+        <option value="added">追加日時 (新しい順)</option>
+      </select>
+    </div>
+    <div id="admin-list"></div>
+  </div>
+</div>
+
+<!-- ====== READER SCREEN ====== -->
+<div id="reader-screen">
+  <header class="reader-header">
+    <div class="reader-header-inner">
+      <span class="reader-logo">読む<span>.</span></span>
+      <div class="reader-controls">
+        <select class="reader-sort" onchange="renderReader(this.value)">
+          <option value="published">新しい順</option>
+          <option value="published-asc">古い順</option>
+          <option value="added">追加順</option>
+        </select>
+        <a class="reader-admin-link" onclick="showAdmin()">管理 →</a>
+      </div>
+    </div>
+  </header>
+  <main class="reader-main">
+    <div class="reader-count" id="reader-count"></div>
+    <div id="reader-list"></div>
+  </main>
+</div>
+
+<script>
+
+const PROXY = 'https://api.allorigins.win/get?url=';
+let articles = JSON.parse(localStorage.getItem('yomu_articles') || '[]');
+
+
+function save() {
+  localStorage.setItem('yomu_articles', JSON.stringify(articles));
+}
+
+// ===== SCREEN ROUTING =====
+function showScreen(id) {
+  ['admin-screen','reader-screen'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+}
+
+function showAdmin() {
+  showScreen('admin-screen');
+  renderAdmin();
+}
+
+function showReader() {
+  showScreen('reader-screen');
+  renderReader();
+}
+
+
+// ===== OGP FETCH =====
+async function fetchMeta(url) {
+  const res = await fetch(PROXY + encodeURIComponent(url));
+  const data = await res.json();
+  const html = data.contents;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  const getMeta = (prop) => {
+    const el = doc.querySelector(`meta[property="${prop}"], meta[name="${prop}"]`);
+    return el ? el.getAttribute('content') : '';
+  };
+
+  const title =
+    getMeta('og:title') ||
+    (doc.querySelector('title') ? doc.querySelector('title').textContent : '') ||
+    url;
+
+  const description =
+    getMeta('og:description') ||
+    getMeta('description') || '';
+
+  const image = getMeta('og:image') || '';
+
+  // 日時
+  let published = '';
+  const dateMeta = [
+    'article:published_time','datePublished','date',
+    'og:article:published_time','pubdate','DC.date'
+  ];
+  for (const m of dateMeta) {
+    const v = getMeta(m);
+    if (v) { published = v; break; }
+  }
+
+  // time タグ
+  if (!published) {
+    const timeEl = doc.querySelector('time[datetime]');
+    if (timeEl) published = timeEl.getAttribute('datetime');
+  }
+
+  const domain = new URL(url).hostname.replace('www.', '');
+
+  return { title, description, image, published, domain };
+}
+
+// ===== ADD ARTICLE =====
+async function fetchAndAdd() {
+  const input = document.getElementById('url-input');
+  const btn = document.getElementById('add-btn');
+  const status = document.getElementById('fetch-status');
+  const url = input.value.trim();
+
+  if (!url) return;
+
+  // Check duplicate
+  if (articles.find(a => a.url === url)) {
+    status.className = 'fetch-status error';
+    status.textContent = 'この URL はすでに追加されています';
+    return;
+  }
+
+  try {
+    new URL(url);
+  } catch {
+    status.className = 'fetch-status error';
+    status.textContent = '有効な URL を入力してください';
+    return;
+  }
+
+  btn.disabled = true;
+  status.className = 'fetch-status';
+  status.innerHTML = '<span class="spinner"></span>取得中...';
+
+  try {
+    const meta = await fetchMeta(url);
+    const article = {
+      id: Date.now().toString(),
+      url,
+      title: meta.title || url,
+      description: meta.description,
+      image: meta.image,
+      domain: meta.domain,
+      published: meta.published || '',
+      addedAt: new Date().toISOString()
+    };
+    articles.unshift(article);
+    save();
+    input.value = '';
+    status.className = 'fetch-status success';
+    status.textContent = `✓ 追加しました: ${article.title.slice(0,50)}`;
+    renderAdmin();
+  } catch (e) {
+    status.className = 'fetch-status error';
+    status.textContent = '取得に失敗しました。URLを確認してください。';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===== DELETE =====
+function deleteArticle(id) {
+  articles = articles.filter(a => a.id !== id);
+  save();
+  renderAdmin();
+}
+
+// ===== SORT =====
+function sorted(arr, mode) {
+  const a = [...arr];
+  if (mode === 'published') {
+    return a.sort((x,y) => {
+      const dx = x.published ? new Date(x.published) : new Date(0);
+      const dy = y.published ? new Date(y.published) : new Date(0);
+      return dy - dx;
+    });
+  } else if (mode === 'published-asc') {
+    return a.sort((x,y) => {
+      const dx = x.published ? new Date(x.published) : new Date(0);
+      const dy = y.published ? new Date(y.published) : new Date(0);
+      return dx - dy;
+    });
+  } else {
+    return a.sort((x,y) => new Date(y.addedAt) - new Date(x.addedAt));
+  }
+}
+
+function fmtDate(str) {
+  if (!str) return '—';
+  const d = new Date(str);
+  if (isNaN(d)) return str.slice(0,10);
+  return d.toLocaleDateString('ja-JP', { year:'numeric', month:'short', day:'numeric' });
+}
+
+// ===== RENDER ADMIN =====
+function renderAdmin(sortMode = 'published') {
+  const list = document.getElementById('admin-list');
+  document.getElementById('admin-count').textContent = articles.length;
+
+  if (articles.length === 0) {
+    list.innerHTML = '<div class="empty-state">まだ記事がありません<br>URLを貼り付けて追加しましょう</div>';
+    return;
+  }
+
+  const arr = sorted(articles, sortMode);
+
+  list.innerHTML = arr.map(a => `
+    <div class="admin-article-card">
+      ${a.image
+        ? `<img class="admin-thumb" src="${escHtml(a.image)}" alt="" onerror="this.style.display='none';">`
+        : `<div class="admin-thumb-placeholder">📄</div>`
+      }
+      <div class="admin-article-info">
+        <div class="admin-article-title">${escHtml(a.title)}</div>
+        <div class="admin-article-meta">
+          <span>${escHtml(a.domain)}</span>
+          <span>投稿: ${fmtDate(a.published)}</span>
+          <span>追加: ${fmtDate(a.addedAt)}</span>
+        </div>
+        <div class="admin-article-url">${escHtml(a.url)}</div>
+      </div>
+      <div class="admin-article-actions">
+        <button class="btn-delete" onclick="deleteArticle('${a.id}')" title="削除">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== RENDER READER =====
+function renderReader(sortMode = 'published') {
+  const list = document.getElementById('reader-list');
+  const count = document.getElementById('reader-count');
+  count.textContent = `${articles.length} 件の記事`;
+
+  if (articles.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:4rem 1rem;color:var(--text-muted);font-family:var(--font-mono);font-size:0.8rem;">まだ記事がありません</div>`;
+    return;
+  }
+
+  const arr = sorted(articles, sortMode);
+
+  list.innerHTML = arr.map(a => `
+    <article class="reader-card">
+      <div class="reader-card-inner">
+        <div class="reader-card-thumb-wrap">
+          ${a.image
+            ? `<img class="reader-card-thumb" src="${escHtml(a.image)}" alt="" onerror="this.parentElement.innerHTML='<div class=reader-card-thumb-placeholder>📰</div>'">`
+            : `<div class="reader-card-thumb-placeholder">📰</div>`
+          }
+        </div>
+        <div class="reader-card-content">
+          <div class="reader-card-top">
+            <div class="reader-card-domain">${escHtml(a.domain)}</div>
+            <a class="reader-card-title" href="${escHtml(a.url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.title)}</a>
+            ${a.description ? `<div class="reader-card-desc">${escHtml(a.description)}</div>` : ''}
+          </div>
+          <div class="reader-card-footer">
+            <span class="reader-card-date">${fmtDate(a.published) !== '—' ? fmtDate(a.published) : '日時不明'}</span>
+            <a class="reader-card-link" href="${escHtml(a.url)}" target="_blank" rel="noopener noreferrer">
+              元記事を読む →
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  `).join('');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== INIT =====
+showScreen('reader-screen');
+renderReader();
+</script>
+</body>
+</html>
