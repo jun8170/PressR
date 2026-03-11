@@ -732,7 +732,7 @@ async function fetchAndAdd() {
       description: meta.description,
       image: meta.image,
       domain: meta.domain,
-      published: meta.published || '',
+      published: meta.published || new Date().toISOString(),
       addedAt: new Date().toISOString()
     };
     articles.unshift(article);
